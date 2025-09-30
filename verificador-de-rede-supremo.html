@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificador de Rede</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Verificador de Rede</h1>
+        
+        <!-- Informação do IP Fixo -->
+        <div class="input-group">
+            <label>IP de Origem (Fixo):</label>
+            <input type="text" id="ipOrigem" value="192.168.1.10" readonly>
+        </div>
+
+        <!-- Entrada da Máscara -->
+        <div class="input-group">
+            <label for="mascaraBits">Máscara de Rede (em bits):</label>
+            <input type="number" id="mascaraBits" min="0" max="32" placeholder="Ex: 24">
+        </div>
+
+        <!-- Entrada do IP de Destino -->
+        <div class="input-group">
+            <label for="ipDestino">IP de Destino:</label>
+            <input type="text" id="ipDestino" placeholder="Ex: 192.168.1.20">
+        </div>
+
+        <!-- Botão para Verificar -->
+        <button onclick="verificarRede()">Verificar Rede</button>
+
+        <!-- Área de Resultados -->
+        <div id="resultadoMascara" class="input-group"></div>
+        
+        <div id="resultadoRede" class="result"></div>
+    </div>
+
+ <script>
+    // FUNÇÃO 1: Converter máscara de bits para formato decimal (já existente)
+    function mascaraBitsParaDecimal(bits) {
+        if (bits < 0 || bits > 32) return "Inválido";
+        
+        let mascaraBinaria = '';
+        for (let i = 0; i < bits; i++) mascaraBinaria += '1';
+        while (mascaraBinaria.length < 32) mascaraBinaria += '0';
+        
+        const octeto1 = mascaraBinaria.substring(0, 8);
+        const octeto2 = mascaraBinaria.substring(8, 16);
+        const octeto3 = mascaraBinaria.substring(16, 24);
+        const octeto4 = mascaraBinaria.substring(24, 32);
+        
+        const decimal1 = parseInt(octeto1, 2);
+        const decimal2 = parseInt(octeto2, 2);
+        const decimal3 = parseInt(octeto3, 2);
+        const decimal4 = parseInt(octeto4, 2);
+        
+        return `${decimal1}.${decimal2}.${decimal3}.${decimal4}`;
+    }
+
+    // FUNÇÃO 2: Converter IP para número binário (NOVA)
+    function ipParaBinario(ip) {
+        const octetos = ip.split('.');
+        let ipBinario = '';
+        
+        for (let octeto of octetos) {
+            // Converte cada octeto para binário e preenche com zeros à esquerda
+            let binario = parseInt(octeto).toString(2);
+            ipBinario += binario.padStart(8, '0');
+        }
+        
+        return ipBinario;
+    }
+
+    // FUNÇÃO 3: Aplicar máscara a um IP (NOVA)
+    function aplicarMascara(ipBinario, mascaraBits) {
+        // Pega apenas os primeiros 'n' bits (parte da rede)
+        return ipBinario.substring(0, mascaraBits);
+    }
+
+    // FUNÇÃO 4: Função principal completa (ATUALIZADA)
+    function verificarRede() {
+        // 1. Pegar os valores
+        const mascaraBits = parseInt(document.getElementById('mascaraBits').value);
+        const ipDestino = document.getElementById('ipDestino').value;
+        const ipOrigem = '192.168.1.10'; // Nosso IP fixo
+        
+        // 2. Validar entradas
+        if (!mascaraBits || !ipDestino) {
+            alert('Por favor, preencha todos os campos!');
+            return;
+        }
+
+        // 3. Converter máscara e mostrar (ITEM A)
+        const mascaraDecimal = mascaraBitsParaDecimal(mascaraBits);
+        document.getElementById('resultadoMascara').innerHTML = `
+            <strong>Máscara de Rede em Decimal:</strong><br>
+            <span style="font-family: monospace; font-size: 18px;">${mascaraDecimal}</span>
+        `;
+        
+        // 4. VERIFICAR SE ESTÃO NA MESMA REDE (ITEM B)
+        
+        // Converte os IPs para binário
+        const ipOrigemBin = ipParaBinario(ipOrigem);
+        const ipDestinoBin = ipParaBinario(ipDestino);
+        
+        // Aplica a máscara em ambos
+        const redeOrigem = aplicarMascara(ipOrigemBin, mascaraBits);
+        const redeDestino = aplicarMascara(ipDestinoBin, mascaraBits);
+        
+        // Compara as redes
+        const mesmaRede = redeOrigem === redeDestino;
+        
+        // 5. Mostrar o resultado
+        const resultadoElemento = document.getElementById('resultadoRede');
+        
+        if (mesmaRede) {
+            resultadoElemento.innerHTML = `
+                <strong>✅ O IP de destino ESTÁ na mesma rede!</strong><br>
+                <small>Rede de origem: ${redeOrigem}...<br>
+                Rede de destino: ${redeDestino}...</small>
+            `;
+            resultadoElemento.className = 'result success';
+        } else {
+            resultadoElemento.innerHTML = `
+                <strong>❌ O IP de destino NÃO ESTÁ na mesma rede!</strong><br>
+                <small>Rede de origem: ${redeOrigem}...<br>
+                Rede de destino: ${redeDestino}...</small>
+            `;
+            resultadoElemento.className = 'result error';
+        }
+        
+        resultadoElemento.style.display = 'block';
+    }
+</script>
+</body>
+</html>
